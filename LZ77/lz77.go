@@ -27,6 +27,8 @@ func main() {
 	decompressFileData := Decompress(codes)
 
 	fmt.Println(decompressFileData)
+
+	WriteFileData(fmt.Sprintf("NEW%s", filename), decompressFileData)
 }
 
 func GetDataFromJson(v any) []byte {
@@ -39,7 +41,7 @@ func GetDataFromJson(v any) []byte {
 }
 
 func GetCodesFromCompressData(data []byte) []CompressCode {
-	var codes []CompressCode
+	codes := make([]CompressCode, 0)
 	err := json.Unmarshal(data, &codes)
 	if err != nil {
 		fmt.Println(err)
@@ -63,7 +65,7 @@ func GetFileData(filename string) []byte {
 		}
 	}(file)
 
-	data := make([]byte, 64)
+	data := make([]byte, 4096)
 	size := 0
 	for {
 		n, err := file.Read(data)

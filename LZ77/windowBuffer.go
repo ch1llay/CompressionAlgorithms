@@ -1,9 +1,9 @@
 package main
 
 type CompressCode struct {
-	Offset   int
-	Length   int
-	NextElem byte
+	Offset   int  `json:"Offset"`
+	Length   int  `json:"Length"`
+	NextElem byte `json:"NextElem"`
 }
 
 type CompressCodeString struct {
