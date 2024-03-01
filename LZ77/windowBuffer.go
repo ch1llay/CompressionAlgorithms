@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type CompressCode struct {
 	Offset   int
 	Length   int
@@ -32,10 +30,12 @@ func ConvertToCompressCodeString(c []CompressCode) []CompressCodeString {
 }
 
 type SliceWindow struct {
-	Dict        []byte
-	DictString  []string
-	Codes       []CompressCode
-	CodesString []CompressCodeString
+	Dict                 []byte
+	DictString           []string
+	Codes                []CompressCode
+	CodesString          []CompressCodeString
+	DecompressData       []byte
+	DecompressDataString []string
 }
 
 func NewWindowBuffer(bufSize int) *SliceWindow {
@@ -44,6 +44,8 @@ func NewWindowBuffer(bufSize int) *SliceWindow {
 		make([]string, bufSize),
 		make([]CompressCode, 0, 0),
 		make([]CompressCodeString, 0, 0),
+		make([]byte, 0, 0),
+		make([]string, 0, 0),
 	}
 }
 
@@ -58,19 +60,22 @@ func (wb *SliceWindow) Write(elem byte) {
 }
 
 func (wb *SliceWindow) WriteA(buf []byte, isLast bool) int {
-	bufString := string(buf)
-	fmt.Println(bufString)
+	//bufString := string(buf)
+	//fmt.Println(bufString)
 
 	i := 0
 	var lastEqualIndex int
 	for ; i < len(buf); i++ {
 		elem := buf[i]
 
-		elemS := string(elem)
-		fmt.Println(elemS)
+		/*elemS := string(elem)
+		fmt.Println(elemS)*/
 
 		if i == 0 {
 			lastEqualIndex = search(elem, wb.Dict, i)
+			if lastEqualIndex == -1 {
+				lastEqualIndex = 0
+			}
 		}
 
 		index := search(elem, wb.Dict, i)
@@ -98,9 +103,33 @@ func (wb *SliceWindow) WriteA(buf []byte, isLast bool) int {
 	return i + 1
 }
 
-func search(key byte, arr []byte, beforeIndex int) int {
+func (wb *SliceWindow) WriteR(code CompressCode) int {
+	var newLength int
+	if code.Length == 0 {
+		newLength = 1
+	} else {
+		newLength = code.Length
+	}
+
+	for i := code.Offset; i < code.Offset+code.Length; i++ {
+		wb.DecompressData = append(wb.DecompressData, wb.Dict[i])
+		wb.DecompressDataString = append(wb.DecompressDataString, string(wb.Dict[i]))
+	}
+
+	for i := code.Offset; i < code.Offset+code.Length; i++ {
+		wb.Write(wb.Dict[i])
+	}
+
+	wb.DecompressData = append(wb.DecompressData, code.NextElem)
+	wb.DecompressDataString = append(wb.DecompressDataString, string(code.NextElem))
+	wb.Write(code.NextElem)
+
+	return newLength
+}
+
+func search(key byte, arr []byte, indexBefore int) int {
 	for index, value := range arr {
-		if value == key && index >= beforeIndex {
+		if value == key && index >= indexBefore {
 			return index
 		}
 	}

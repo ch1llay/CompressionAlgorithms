@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -9,14 +10,43 @@ import (
 func main() {
 
 	filename := "file.txt"
-	//compressFileName := ""
+	compressFileName := fmt.Sprintf("%s.lz77", filename)
 
 	fileData := GetFileData(filename)
 
-	compressFileData := Compress(fileData)
+	oldCodes := Compress(fileData)
 
-	fmt.Println(ConvertToCompressCodeString(compressFileData))
+	compressedData := GetDataFromJson(oldCodes)
 
+	WriteFileData(compressFileName, compressedData)
+	//fmt.Println(ConvertToCompressCodeString(compressFileData))
+
+	compressFileData := GetFileData(compressFileName)
+	codes := GetCodesFromCompressData(compressFileData)
+
+	decompressFileData := Decompress(codes)
+
+	fmt.Println(decompressFileData)
+}
+
+func GetDataFromJson(v any) []byte {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil
+	}
+
+	return data
+}
+
+func GetCodesFromCompressData(data []byte) []CompressCode {
+	var codes []CompressCode
+	err := json.Unmarshal(data, &codes)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	return codes
 }
 
 func GetFileData(filename string) []byte {
@@ -79,4 +109,17 @@ func Compress(data []byte) []CompressCode {
 	}
 
 	return windowBuffer.Codes
+}
+
+func Decompress(codes []CompressCode) []byte {
+	dictSize := 8
+	//bufSize := 5
+
+	windowBuffer := NewWindowBuffer(dictSize)
+
+	for i := 0; i < len(codes); i++ {
+		_ = windowBuffer.WriteR(codes[i])
+	}
+
+	return windowBuffer.DecompressData
 }
