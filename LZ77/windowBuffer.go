@@ -32,13 +32,10 @@ func ConvertToCompressCodeString(c []CompressCode) []CompressCodeString {
 }
 
 type SliceWindow struct {
-	Dict           []byte
-	DictString     []string
-	Codes          []CompressCode
-	CodesString    []CompressCodeString
-	LastEquals     bool
-	MatchingCount  int
-	LastEqualIndex int
+	Dict        []byte
+	DictString  []string
+	Codes       []CompressCode
+	CodesString []CompressCodeString
 }
 
 func NewWindowBuffer(bufSize int) *SliceWindow {
@@ -47,9 +44,6 @@ func NewWindowBuffer(bufSize int) *SliceWindow {
 		make([]string, bufSize),
 		make([]CompressCode, 0, 0),
 		make([]CompressCodeString, 0, 0),
-		false,
-		0,
-		0,
 	}
 }
 
@@ -66,41 +60,33 @@ func (wb *SliceWindow) Write(elem byte) {
 func (wb *SliceWindow) WriteA(buf []byte, isLast bool) int {
 	bufString := string(buf)
 	fmt.Println(bufString)
+
 	i := 0
+	var lastEqualIndex int
 	for ; i < len(buf); i++ {
 		elem := buf[i]
 
 		elemS := string(elem)
 		fmt.Println(elemS)
 
-		index := search(elem, wb.Dict, i)
-
-		if index != -1 && !isLast {
-			if !wb.LastEquals {
-				wb.LastEqualIndex = index
-			}
-			wb.LastEquals = true
-			wb.MatchingCount++
-		} else {
-			index = 0
-			wb.LastEquals = false
+		if i == 0 {
+			lastEqualIndex = search(elem, wb.Dict, i)
 		}
 
-		if !wb.LastEquals {
+		index := search(elem, wb.Dict, i)
+
+		if index == -1 || isLast {
 			wb.Codes = append(wb.Codes, CompressCode{
-				wb.LastEqualIndex,
-				wb.MatchingCount,
+				lastEqualIndex,
+				i,
 				elem,
 			})
 
 			wb.CodesString = append(wb.CodesString, CompressCodeString{
-				wb.LastEqualIndex,
-				wb.MatchingCount,
+				lastEqualIndex,
+				i,
 				string(elem),
 			})
-
-			wb.MatchingCount = 0
-			wb.LastEqualIndex = 0
 
 			for _, el := range buf[:i+1] {
 				wb.Write(el)
